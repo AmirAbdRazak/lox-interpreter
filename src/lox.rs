@@ -1,3 +1,5 @@
+use crate::ast_printer::ASTStringVisitor;
+use crate::parser::Parser;
 use crate::scanner;
 use crate::token::Token;
 use std::io::prelude::*;
@@ -22,7 +24,18 @@ impl Lox {
                 .for_each(|err| self.report(err.line(), format!("{}", err))),
         };
 
-        println!("Current Tokens: {:?}", tokens);
+        let mut parser = Parser::new(tokens);
+        let expression = parser.parse();
+
+        match expression {
+            Ok(expr) => println!(
+                "{}",
+                ASTStringVisitor {
+                    expressions: &[expr]
+                }
+            ),
+            Err(err) => println!("{}", err),
+        }
     }
 
     pub fn run_prompt(&mut self) -> io::Result<()> {

@@ -1,29 +1,36 @@
-use crate::token::Literal;
 use crate::token::{Token, TokenType};
 use std::iter;
 use std::str;
 use std::{collections, fmt};
 
-pub type ScannerResult<T> = Result<T, ErrorReporter>;
+pub type ScannerResult<T> = Result<T, ScannerError>;
 
 #[derive(Debug)]
-pub enum ErrorReporter {
+pub enum ScannerError {
     UnknownCharacter(char, usize),
     UnterminatedString(usize),
     UnparseableDigit(String, usize),
 }
 
-impl fmt::Display for ErrorReporter {
+impl fmt::Display for ScannerError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            ErrorReporter::UnknownCharacter(c, line) => {
-                write!(f, "Unrecognised character {} at line {}", c, line)?;
+            ScannerError::UnknownCharacter(c, line) => {
+                write!(
+                    f,
+                    "Scanner Error: Unrecognised character {} at line {}",
+                    c, line
+                )?;
             }
-            ErrorReporter::UnterminatedString(line) => {
-                write!(f, "Unterminated string at line {}", line)?;
+            ScannerError::UnterminatedString(line) => {
+                write!(f, "Scanner Error: Unterminated string at line {}", line)?;
             }
-            ErrorReporter::UnparseableDigit(err_str, line) => {
-                write!(f, "Unparseable digit {} at line {}", err_str, line)?;
+            ScannerError::UnparseableDigit(err_str, line) => {
+                write!(
+                    f,
+                    "Scanner Error: Unparseable digit {} at line {}",
+                    err_str, line
+                )?;
             }
         }
 
@@ -31,12 +38,12 @@ impl fmt::Display for ErrorReporter {
     }
 }
 
-impl ErrorReporter {
+impl ScannerError {
     pub fn line(&self) -> usize {
         match *self {
-            ErrorReporter::UnknownCharacter(_, line) => line,
-            ErrorReporter::UnterminatedString(line) => line,
-            ErrorReporter::UnparseableDigit(_, line) => line,
+            ScannerError::UnknownCharacter(_, line) => line,
+            ScannerError::UnterminatedString(line) => line,
+            ScannerError::UnparseableDigit(_, line) => line,
         }
     }
 }
@@ -79,9 +86,9 @@ impl<'a> Scanner<'a> {
         keywords
     }
 
-    pub fn scan_tokens(&mut self) -> Result<Vec<Token>, Vec<ErrorReporter>> {
+    pub fn scan_tokens(&mut self) -> Result<Vec<Token>, Vec<ScannerError>> {
         let mut tokens: Vec<Token> = Vec::new();
-        let mut errors: Vec<ErrorReporter> = Vec::new();
+        let mut errors: Vec<ScannerError> = Vec::new();
 
         loop {
             self.skip_whitespace();
@@ -113,8 +120,6 @@ impl<'a> Scanner<'a> {
         Token {
             token_type,
             line: self.line,
-            literal: None,
-            lexeme: None,
         }
     }
 
@@ -167,19 +172,14 @@ impl<'a> Scanner<'a> {
         while let Some(&c) = self.source.peek() {
             if c == '"' {
                 self.source.next();
-                return Ok(Token::new(
-                    TokenType::String,
-                    self.line,
-                    Some(string.clone()),
-                    Some(Literal::Str(string)),
-                ));
+                return Ok(self.simple_token(TokenType::LoxString(string)));
             } else if c == '\n' {
                 self.line += 1;
             }
             string.push(self.source.next().unwrap());
         }
 
-        return Err(ErrorReporter::UnterminatedString(line));
+        return Err(ScannerError::UnterminatedString(line));
     }
 
     pub fn parse_number(&mut self, ch: char) -> ScannerResult<Token> {
@@ -198,14 +198,9 @@ impl<'a> Scanner<'a> {
         }
 
         match string.parse() {
-            Ok(float) => Ok(Token::new(
-                TokenType::Number,
-                self.line,
-                Some(string),
-                Some(Literal::Float(float)),
-            )),
+            Ok(float) => Ok(self.simple_token(TokenType::Number(float))),
             Err(_) => {
-                return Err(ErrorReporter::UnparseableDigit(string, self.line));
+                return Err(ScannerError::UnparseableDigit(string, self.line));
             }
         }
     }
@@ -224,12 +219,7 @@ impl<'a> Scanner<'a> {
 
         match self.keywords.get(&string) {
             Some(keyword_type) => Ok(self.simple_token(keyword_type.clone())),
-            None => Ok(Token::new(
-                TokenType::Identifier,
-                self.line,
-                Some(string),
-                None,
-            )),
+            None => Ok(self.simple_token(TokenType::Identifier(string))),
         }
     }
 
@@ -262,7 +252,7 @@ impl<'a> Scanner<'a> {
                 } else if ch.is_alphabetic() || ch == '_' {
                     return self.parse_identifier(ch);
                 } else {
-                    return Err(ErrorReporter::UnknownCharacter(ch, self.line));
+                    return Err(ScannerError::UnknownCharacter(ch, self.line));
                 }
             }
         };

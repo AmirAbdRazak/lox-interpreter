@@ -1,4 +1,4 @@
-use crate::syntax::{BinaryExpr, Expr, UnaryExpr};
+use crate::syntax::{BinaryExpr, Expr, Grouping, UnaryExpr};
 use crate::visit::MutVisitor;
 
 pub struct Interpreter {}
@@ -10,7 +10,7 @@ impl MutVisitor for Interpreter {
         match expr {
             Expr::Binary(BinaryExpr {
                 left: left_expr,
-                operator: operator,
+                operator,
                 right: right_expr,
             }) => {
                 let right = self.visit_expression(right_expr)?;
@@ -21,6 +21,10 @@ impl MutVisitor for Interpreter {
                 right: right_expr,
             }) => {
                 let right = self.visit_expression(right_expr)?;
+            }
+            Expr::Literal(lit) => {}
+            Expr::Grouping(Grouping { expression }) => {
+                let expr = self.visit_expression(expression)?;
             }
 
             _ => unreachable!(),

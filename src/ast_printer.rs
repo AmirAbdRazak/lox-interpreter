@@ -19,8 +19,8 @@ impl<'a> Visitor for ASTStringVisitor<'a> {
                 right: right_expr,
                 operator,
             }) => format!(
-                "(Binary {:?} {} {})",
-                operator,
+                "(Binary {} {} {})",
+                operator.token_type,
                 self.visit_expression(left_expr),
                 self.visit_expression(right_expr)
             ),
@@ -28,14 +28,15 @@ impl<'a> Visitor for ASTStringVisitor<'a> {
                 operator,
                 right: right_expr,
             }) => format!(
-                "(Unary {:?} {})",
-                operator,
+                "(Unary {} {})",
+                operator.token_type,
                 self.visit_expression(right_expr)
             ),
             Expr::Grouping(Grouping { expression: expr }) => {
                 format!("(Grouping {})", self.visit_expression(expr))
             }
-            Expr::Literal(token) => format!("(Literal {:?})", token),
+            Expr::Literal(literal_value) => format!("(Literal {})", literal_value),
+            Expr::Empty => "(Empty Expression)".to_string(),
 
             _ => unreachable!(),
         }
@@ -44,7 +45,6 @@ impl<'a> Visitor for ASTStringVisitor<'a> {
 
 impl<'a> fmt::Display for ASTStringVisitor<'a> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        println!("In fmt expressions");
         for expr in self.expressions {
             write!(f, "{}", self.visit_expression(expr))?;
         }

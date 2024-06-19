@@ -1,6 +1,7 @@
 mod ast_printer;
 mod interpreter;
 mod lox;
+mod parser;
 mod scanner;
 mod syntax;
 mod token;
@@ -14,29 +15,11 @@ use syntax::BinaryExpr;
 use syntax::Expr;
 use syntax::Grouping;
 use syntax::UnaryExpr;
-use token::Literal;
 use token::Token;
 
 fn main() {
     let mut lox = lox::Lox::new();
     let args: Vec<String> = env::args().collect();
-
-    let expression = Expr::Binary(BinaryExpr {
-        left: Box::new(Expr::Unary(UnaryExpr {
-            operator: Token::new(token::TokenType::Minus, 1, Some("-".to_string()), None),
-            right: Box::new(Expr::Literal(Literal::Float(123.0))),
-        })),
-        operator: Token::new(token::TokenType::Star, 1, Some("*".to_string()), None),
-        right: Box::new(Expr::Grouping(Grouping {
-            expression: Box::new(Expr::Literal(Literal::Str("string literal".to_string()))),
-        })),
-    });
-
-    let sv = ASTStringVisitor {
-        expressions: &[expression],
-    };
-
-    println!("{}", sv);
 
     if args.len() == 1 {
         let _ = lox.run_prompt();
@@ -46,3 +29,16 @@ fn main() {
         println!("Usage: rlox [script]");
     }
 }
+
+// fn test_working_expressions() -> Expr {
+//     Expr::Binary(BinaryExpr {
+//         left: Box::new(Expr::Unary(UnaryExpr {
+//             operator: Token::new(token::TokenType::Minus, 1),
+//             right: Box::new(Expr::Literal(123.0.into())),
+//         })),
+//         operator: Token::new(token::TokenType::Star, 1),
+//         right: Box::new(Expr::Grouping(Grouping {
+//             expression: Box::new(Expr::Literal("WHAT".to_string().into())),
+//         })),
+//     })
+// }
