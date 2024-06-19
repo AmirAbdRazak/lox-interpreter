@@ -36,8 +36,6 @@ impl<'a> Visitor for ASTStringVisitor<'a> {
                 format!("(Grouping {})", self.visit_expression(expr))
             }
             Expr::Literal(literal_value) => format!("(Literal {})", literal_value),
-
-            _ => unreachable!(),
         }
     }
 }

@@ -2,7 +2,6 @@ use std::fmt;
 use std::iter::Peekable;
 
 use crate::{
-    ast_printer::ASTStringVisitor,
     syntax::{BinaryExpr, Expr, Grouping, LiteralValue, UnaryExpr},
     token::{Token, TokenType as TT},
 };

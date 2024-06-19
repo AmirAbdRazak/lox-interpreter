@@ -10,12 +10,12 @@ mod visit;
 use std::env;
 use std::path;
 
-use ast_printer::ASTStringVisitor;
-use syntax::BinaryExpr;
-use syntax::Expr;
-use syntax::Grouping;
-use syntax::UnaryExpr;
-use token::Token;
+// use ast_printer::ASTStringVisitor;
+// use syntax::BinaryExpr;
+// use syntax::Expr;
+// use syntax::Grouping;
+// use syntax::UnaryExpr;
+// use token::Token;
 
 fn main() {
     let mut lox = lox::Lox::new();
