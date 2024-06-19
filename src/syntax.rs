@@ -1,4 +1,4 @@
-use crate::token::Token;
+use crate::{ast_printer::ASTStringVisitor, token::Token};
 use std::fmt;
 
 #[derive(Debug, Clone)]
@@ -83,5 +83,15 @@ pub enum Expr {
     Grouping(Grouping),
     Literal(LiteralValue),
     Unary(UnaryExpr),
-    Empty,
+}
+
+impl fmt::Display for Expr {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let expr_str = ASTStringVisitor {
+            expressions: &[self.clone()],
+        };
+        write!(f, "{}", expr_str)?;
+
+        Ok(())
+    }
 }

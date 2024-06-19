@@ -16,6 +16,7 @@ pub enum ParserError {
     UnterminatedParentheses(usize, usize),
     NonPrimaryToken(Token),
     EmptyPrimary(usize),
+    EmptyExpression(usize),
 }
 
 impl fmt::Display for ParserError {
@@ -38,6 +39,13 @@ impl fmt::Display for ParserError {
                     line
                 )?;
             }
+            ParserError::EmptyExpression(line) => {
+                write!(
+                    f,
+                    "Parser Error: Empty expressions are illegal, found at line {}",
+                    line
+                )?;
+            }
         }
 
         Ok(())
@@ -50,6 +58,7 @@ impl ParserError {
             ParserError::UnterminatedParentheses(line, _) => line,
             ParserError::NonPrimaryToken(Token { line, .. }) => line,
             ParserError::EmptyPrimary(line) => line,
+            ParserError::EmptyExpression(line) => line,
         }
     }
 }
@@ -125,7 +134,7 @@ impl Parser {
 
     fn unary(&mut self) -> ExprResult {
         let unary_tokens = [TT::Bang, TT::Minus];
-        match self.tokens.peek() {
+        let intrem = match self.tokens.peek() {
             Some(token) if unary_tokens.contains(&token.token_type) => {
                 // Update prev token line pointer
                 self.prev_token_line = token.line;
@@ -139,7 +148,9 @@ impl Parser {
             }
 
             _ => self.primary(),
-        }
+        };
+
+        intrem
     }
 
     fn primary(&mut self) -> ExprResult {
@@ -153,11 +164,11 @@ impl Parser {
                     let token = self.tokens.next().unwrap();
                     let result_expr = self.expression();
 
-                    // This feels VERY VERY hacky but i'm too dumb for this
                     let expr = match result_expr {
                         Ok(ex) => Ok(ex),
+
                         Err(ParserError::NonPrimaryToken(token)) => match token.token_type {
-                            TT::RightParen => Ok(Expr::Empty),
+                            TT::RightParen => Err(ParserError::EmptyExpression(token.line)),
                             _ => Err(ParserError::NonPrimaryToken(token)),
                         },
                         Err(err) => Err(err),
@@ -183,29 +194,28 @@ impl Parser {
                 }
 
                 // Handle literals
-                TT::False => self.consume_and_return_ok(Expr::Literal(false.into())),
-                TT::True => self.consume_and_return_ok(Expr::Literal(true.into())),
-                TT::Nil => self.consume_and_return_ok(Expr::Literal(LiteralValue::None)),
-                TT::Number(float) => {
-                    let f = float.clone();
-                    self.consume_and_return_ok(Expr::Literal(f.into()))
+                TT::False => self.consume_and_cast_literal(false.into()),
+                TT::True => self.consume_and_cast_literal(true.into()),
+                TT::Nil => self.consume_and_cast_literal(LiteralValue::None),
+                TT::Number(borrowed_float) => {
+                    let float = borrowed_float.clone();
+                    self.consume_and_cast_literal(float.into())
                 }
-                TT::LoxString(literal) => {
-                    let l = literal.clone();
-                    self.consume_and_return_ok(Expr::Literal(l.into()))
+                TT::LoxString(borrowed_str) => {
+                    let lox_string = borrowed_str.clone();
+                    self.consume_and_cast_literal(lox_string.into())
                 }
 
                 _ => Err(ParserError::NonPrimaryToken(peek_token.clone())),
             }
         } else {
-            self.tokens.next();
             Err(ParserError::EmptyPrimary(self.prev_token_line))
         }
     }
 
-    fn consume_and_return_ok(&mut self, expr_literal: Expr) -> Result<Expr, ParserError> {
+    fn consume_and_cast_literal(&mut self, literal_value: LiteralValue) -> ExprResult {
         self.tokens.next();
-        Ok(expr_literal)
+        Ok(Expr::Literal(literal_value))
     }
 
     fn synchronize(&mut self) {
