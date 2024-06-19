@@ -182,19 +182,30 @@ impl<'a> Scanner<'a> {
         return Err(ScannerError::UnterminatedString(line));
     }
 
+    pub fn consume_alphanumerals(&mut self, string: &mut String) {
+        while let Some(&c) = self.source.peek() {
+            if c.is_alphanumeric() {
+                self.source.next();
+                string.push(c);
+            } else {
+                break;
+            }
+        }
+    }
+
     pub fn parse_number(&mut self, ch: char) -> ScannerResult<Token> {
         let mut string = String::new();
         string.push(ch);
 
-        while let Some(&c) = self.source.peek() {
+        self.consume_alphanumerals(&mut string);
+
+        // Get the leading number
+        if let Some(&c) = self.source.peek() {
             if c == '.' {
+                self.source.next();
                 string.push(c);
-            } else if c.is_alphanumeric() {
-                string.push(c);
-            } else if c.is_whitespace() {
-                break;
+                self.consume_alphanumerals(&mut string)
             }
-            self.source.next();
         }
 
         match string.parse() {
